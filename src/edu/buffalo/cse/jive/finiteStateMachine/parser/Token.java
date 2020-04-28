@@ -52,14 +52,18 @@ class Token {
 	public static final int LEADS_TO = 41;
 	public static final int ALWAYS_LEADS_TO = 42;
 	public static final int P_OP = 43;
+	public static final int ALL=44;
+	public static final int EXISTS=45;
+	public static final int COLON=46;
+
 	
 
 	private static String[] lexemes = { ";", ",", "+", "-", "*", "/", "=", ">", "<", "<=", ">=", "==", "!=", "(", ")",
 			"{", "}", "id", "int_lit", "&&", "||", "->", "F", "G", "U", "X", "[", "]", "!", "end", "'",
-			"n_int_lit", "string_lit", "E", "in", ".", "++", "size", "min", "max", "hash", "~>", "~~>", "P"};
+			"n_int_lit", "string_lit", "E", "in", ".", "++", "size", "min", "max", "hash", "~>", "~~>", "P","all","exists",":"};//Added by Aditya All and Exist
 
 	public static String toString(int i) {
-		if (i < 0 || i > 43)
+		if (i < 0 || i > 46)
 			return "";
 		else
 			return lexemes[i];

@@ -14,7 +14,7 @@ public class Lexer {
 	private Buffer buffer;
 	private int nextToken;
 	private char nextChar;
-	private int intValue;
+	public int intValue;
 
 	public Lexer(String input) {
 		buffer = new Buffer(input);
@@ -74,11 +74,17 @@ public class Lexer {
 			case "max":
 				nextToken = Token.MAX_OP;
 				break;
+			case "all":
+				nextToken=Token.ALL;
+				break;
+			case "exists":
+				nextToken=Token.EXISTS;
+				break;
 			default:
 				nextToken = Token.ID;
 			}
 		} else if (Character.isDigit(ch)) {
-			num();
+			getNumToken();
 			nextToken = Token.INT_LIT; // intValue would be set
 		} else {
 			nextChar = ch;
@@ -187,6 +193,10 @@ public class Lexer {
 						//} 
 					} 
 				break;
+			case ':':
+				nextToken = Token.COLON;
+				ch = buffer.getChar();
+				break;
 			case '(':
 				nextToken = Token.LEFT_PAREN;
 				ch = buffer.getChar();
@@ -219,6 +229,7 @@ public class Lexer {
 				stringIdent();
 				setNextToken(Token.STRING_LIT);
 				break;
+			
 			default:
 				error("Illegal character " + ch);
 				break;
@@ -265,18 +276,21 @@ public class Lexer {
 			ident = ident + ch;
 			ch = buffer.getChar();
 		} while (Character.isDigit(ch) || ch == '.');
+		intValue=Integer.parseInt(ident);
 		return ident;
 	}
 
-//	private int getNumToken() {
-//		int num = 0;
-//		do {
-//			num = num * 10 + Character.digit(ch, 10);
-//			ch = buffer.getChar();
-//		} while (Character.isDigit(ch));
-//		intValue = num;
-//		return Token.INT_LIT;
-//	}
+	private int getNumToken() throws Exception {
+		int num = 0;
+		ident = "";
+		do {
+			ident = ident + ch;
+			num = num * 10 + Character.digit(ch, 10); 
+			ch = buffer.getChar();
+		} while (Character.isDigit(ch));  //Only working for integers currently
+		intValue = num;
+		return Token.INT_LIT;
+	}
 
 	public int number() {
 		return intValue;

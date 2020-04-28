@@ -1,6 +1,7 @@
 package edu.buffalo.cse.jive.finiteStateMachine.parser;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 import edu.buffalo.cse.jive.finiteStateMachine.parser.expression.ListOperations.Append;
@@ -43,6 +44,9 @@ import edu.buffalo.cse.jive.finiteStateMachine.parser.expression.value.ListValue
 import edu.buffalo.cse.jive.finiteStateMachine.parser.expression.value.StringValueExpression;
 import edu.buffalo.cse.jive.finiteStateMachine.parser.expression.value.ValueExpression;
 import edu.buffalo.cse.jive.finiteStateMachine.util.TemporaryDataTransporter;
+import edu.buffalo.jive.finiteStateMachine.parser.expression.quantified.AllExpression;
+import edu.buffalo.jive.finiteStateMachine.parser.expression.quantified.ExistExpression;
+import edu.buffalo.jive.finiteStateMachine.parser.expression.quantified.QuantifiedVariableExpression;
 
 /**
  * @author Bharat Jayaraman
@@ -73,7 +77,8 @@ public class TopDownParser implements Parser {
 class ExpressionFactory {
 	private Lexer lexer;
 	private Expression expression;
-
+	public static LinkedList<String> qvars = new LinkedList<String>();
+	
 	public ExpressionFactory(Lexer lexer) {
 		super();
 		this.lexer = lexer;
@@ -186,6 +191,91 @@ class BF {
 		Imply e;
 		Rel r;
 		switch (lexer.getNextToken()) {
+		case Token.ALL:    /*  all(N, 1:10, Exp) */
+			
+			lexer.lex();
+			if (lexer.getNextToken() != Token.LEFT_PAREN)
+					throw new IllegalArgumentException("Syntax Error--1 in Properties");
+			lexer.lex();
+
+			String qvar = lexer.identifier();
+			ExpressionFactory.qvars.addFirst(qvar);
+			lexer.lex();
+
+			lexer.lex();  /* comma */
+
+			if (lexer.getNextToken() == Token.INT_LIT)   { // simple case of all -- int:int 
+				int from = lexer.intValue;
+				lexer.lex();
+
+				if(lexer.getNextToken()==Token.COLON) 
+					lexer.lex();  /* colon */
+				
+			
+				int to = lexer.intValue;
+				lexer.lex();
+				
+				lexer.lex(); /*comma */
+
+				Imply prop_expr = new Imply(lexer);
+
+				if (lexer.getNextToken() != Token.RIGHT_PAREN)
+					throw new IllegalArgumentException("Syntax Error--2 in Properties");
+				lexer.lex();
+
+
+				expression = new AllExpression(qvar, from, to, prop_expr.getExpression());
+			}
+			else { // list iteration
+				String listid = lexer.identifier();
+				
+				lexer.lex();
+				lexer.lex(); /*comma */
+
+				Imply prop_expr = new Imply(lexer);
+
+				if (lexer.getNextToken() != Token.RIGHT_PAREN)
+					throw new IllegalArgumentException("Syntax Error--3 in Properties");
+				lexer.lex();
+
+				expression = new AllExpression(qvar,new VariableExpression(listid, null), prop_expr.getExpression());
+			}
+			ExpressionFactory.qvars.removeFirst();
+			break;
+		case Token.EXISTS:    /*  all(N, 1:10, Exp) */
+			lexer.lex();
+			if (lexer.getNextToken() != Token.LEFT_PAREN)
+					throw new IllegalArgumentException("Syntax Error--4 in Properties");
+			lexer.lex();
+			String qvar_exist = lexer.identifier();
+			ExpressionFactory.qvars.addFirst(qvar_exist);
+			lexer.lex();
+			lexer.lex();  /* comma */
+			if (lexer.getNextToken() == Token.INT_LIT)   { // simple case of all -- int:int 
+				int from = lexer.getIntValue();
+				lexer.lex();
+				lexer.lex();  /* colon */
+				int to = lexer.getIntValue();
+				lexer.lex();
+				lexer.lex(); /*comma */
+				Imply prop_expr = new Imply(lexer);
+				if (lexer.getNextToken() != Token.RIGHT_PAREN)
+					throw new IllegalArgumentException("Syntax Error--5 in Properties");
+				lexer.lex();
+				expression = new ExistExpression(qvar_exist, from, to, prop_expr.getExpression());
+			}
+			else { // list iteration
+				String listid = lexer.identifier();
+				lexer.lex();
+				lexer.lex(); /*comma */
+				Imply prop_expr = new Imply(lexer);
+				if (lexer.getNextToken() != Token.RIGHT_PAREN)
+					throw new IllegalArgumentException("Syntax Error in Properties");
+				lexer.lex();
+				expression = new AllExpression(qvar_exist,new VariableExpression(listid, null), prop_expr.getExpression());
+			}
+			ExpressionFactory.qvars.removeFirst();
+			break;
 		case Token.INT_LIT: // number
 			r = new Rel(lexer);
 			expression = r.getExpression();
@@ -518,9 +608,14 @@ class Factor { // factor -> int_ | id | '(' expr ')' ************ list literal [
 				expression = new DoubleValueExpression(Double.parseDouble("-" + i));
 			}
 			break;
+
 		case Token.ID:
 			id = lexer.getIdent();
 			lexer.lex();
+			if (ExpressionFactory.qvars.contains(id)) {
+				expression = new QuantifiedVariableExpression(id);
+			}
+			else
 			if (lexer.getNextToken() == Token.PRIME_OP) {
 				lexer.lex();
 				
@@ -629,6 +724,7 @@ class Factor { // factor -> int_ | id | '(' expr ')' ************ list literal [
 					}
 
 				} else {
+//					Call quantified variable expression
 					expression = new VariableExpression(id, null);
 				}
 			}
